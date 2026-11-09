@@ -3,72 +3,79 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111827">
+  <meta name="theme-color" content="#faf8f7">
   <meta name="description" content="Text2Speech is a private, local Windows voiceover studio.">
   <title>Text2Speech - Local Voiceover Studio</title>
   <style>
     :root {
       color-scheme: light;
       font-family: "Segoe UI", Arial, sans-serif;
-      color: #172033;
-      background: #f3f6fb;
+      color: #252025;
+      background: #faf8f7;
     }
     * { box-sizing: border-box; }
     body { margin: 0; }
     header {
-      padding: 22px max(24px, calc((100% - 1040px) / 2));
-      background: #111827;
-      color: #f9fafb;
+      max-width: 1000px;
+      height: 94px;
+      margin: auto;
+      padding: 0 28px;
+      border-bottom: 1px solid #e6dfe2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    header strong { font-size: 20px; letter-spacing: -.3px; }
-    main { max-width: 920px; margin: 72px auto; padding: 0 24px; }
+    header strong { font-size: 21px; letter-spacing: -.7px; }
+    header a { color: #b4152d; font-size: 14px; }
+    main { max-width: 1000px; margin: 60px auto; padding: 0 28px; }
     .card {
       padding: 42px;
-      border: 1px solid #e1e7f0;
-      border-radius: 18px;
+      border: 1px solid #e6dfe2;
+      border-top: 4px solid #b4152d;
+      border-radius: 12px;
       background: #fff;
-      box-shadow: 0 16px 40px rgb(15 23 42 / 7%);
     }
     .eyebrow {
-      color: #2563eb;
+      color: #b4152d;
       font-size: 13px;
       font-weight: 700;
       letter-spacing: .08em;
       text-transform: uppercase;
     }
     h1 { margin: 12px 0; font-size: clamp(36px, 6vw, 56px); letter-spacing: -1.7px; }
-    .intro { max-width: 650px; color: #526078; font-size: 18px; line-height: 1.6; }
+    .intro { max-width: 650px; color: #70666c; font-size: 18px; line-height: 1.6; }
     .download {
       display: inline-block;
       margin: 22px 0 8px;
       padding: 14px 22px;
       border-radius: 9px;
-      background: #2563eb;
+      background: #b4152d;
       color: white;
       font-weight: 700;
       text-decoration: none;
     }
-    .download:hover { background: #1d4ed8; }
-    .meta { color: #64748b; font-size: 14px; }
+    .download:hover { background: #921125; }
+    .meta { color: #70666c; font-size: 14px; }
     .details {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 18px;
       margin-top: 38px;
     }
-    .detail { padding-top: 18px; border-top: 1px solid #e5eaf2; }
+    .detail { padding-top: 18px; border-top: 1px solid #e6dfe2; }
     .detail strong { display: block; margin-bottom: 6px; }
-    .detail p { margin: 0; color: #64748b; line-height: 1.5; }
-    footer { padding: 24px; color: #718096; text-align: center; font-size: 13px; }
-    footer a { color: #475569; }
+    .detail p { margin: 0; color: #70666c; line-height: 1.5; }
+    footer { padding: 24px; color: #70666c; text-align: center; font-size: 13px; }
+    footer a { color: #b4152d; }
     @media (max-width: 600px) {
+      header { padding: 0 20px; }
       main { margin: 32px auto; }
       .card { padding: 28px 22px; }
     }
   </style>
 </head>
 <body>
-  <header><strong>Text2Speech</strong></header>
+  <header><strong>Text2Speech</strong><a href="/">DXLUKE - All apps</a></header>
   <main>
     <section class="card">
       <div class="eyebrow">Windows voiceover studio</div>
@@ -77,7 +84,7 @@
         Prepare narration with a local AI writing assistant, choose a Kokoro voice,
         preview your audio, and export a WAV. Your scripts stay on your computer.
       </p>
-      <a class="download" href="https://github.com/OathPros/txt2speech/releases/latest/download/KokoroVoiceoverStudio-Setup-1.1.0.exe">
+      <a class="download" href="https://github.com/OathPros/txt2speech/releases/latest/download/Text2Speech-Setup-1.1.0.exe">
         Download for Windows
       </a>
       <div class="meta">Version 1.1.0 · 64-bit · 705 MB · Per-user install, no administrator required</div>
