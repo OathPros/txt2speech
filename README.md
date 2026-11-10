@@ -2,7 +2,7 @@
 
 This repository contains the Text2Speech download page and application source
 in [`app-source/`](app-source/). The page is deployed to GitHub Pages at
-`https://dxluke.com/text2speech/`; Windows installers are hosted as GitHub
+`https://oathpros.github.io/txt2speech/`; Windows installers are hosted as GitHub
 Release assets.
 
 ## Release updates

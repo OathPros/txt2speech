@@ -71,7 +71,7 @@ finally {
 Write-Host "Application: $distApp\$appName.exe"
 $standardInstaller = Join-Path $root "dist\installer\Text2Speech-Setup-2.0.0.exe"
 Write-Host "Installer:   $standardInstaller"
-Write-Host "Release gate: publish the installer and matching checksum as a stable OathPros/txt2speech GitHub Release, then verify its workflow updates dxluke.com/text2speech."
+Write-Host "Release gate: publish the installer and matching checksum as a stable OathPros/txt2speech GitHub Release, deploy pages.yml from main if tag deployment is blocked, and verify https://oathpros.github.io/txt2speech/."
 
 $modelPath = Join-Path $root "release-assets\models\Qwen3.5-9B-Q4_K_M.gguf"
 $offlineReady = $false
