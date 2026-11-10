@@ -1,0 +1,107 @@
+name: Publish Text2Speech download page
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - README.md
+      - app-source/**
+      - .github/workflows/pages.yml
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Prepare download page
+        run: |
+          mkdir -p page
+          cp index.html page/index.html
+          touch page/.nojekyll
+
+      - name: Build installer release history
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const { owner, repo } = context.repo;
+            const allReleases = await github.paginate(
+              github.rest.repos.listReleases,
+              { owner, repo, per_page: 100 }
+            );
+            const releases = allReleases
+              .filter(release => !release.draft && !release.prerelease)
+              .map(release => {
+                const version = release.tag_name.replace(/^v/, "");
+                const installerName = `Text2Speech-Setup-${version}.exe`;
+                const installer = release.assets.find(asset => asset.name === installerName);
+                if (!installer) return null;
+                const checksum = release.assets.find(
+                  asset => asset.name === `Text2Speech-Setup-${version}-SHA256.txt`
+                );
+                return {
+                  version,
+                  publishedAt: release.published_at,
+                  releaseUrl: release.html_url,
+                  downloadUrl: installer.browser_download_url,
+                  sizeBytes: installer.size,
+                  checksumUrl: checksum ? checksum.browser_download_url : null
+                };
+              })
+              .filter(Boolean)
+              .sort((left, right) =>
+                Date.parse(right.publishedAt) - Date.parse(left.publishedAt)
+              );
+
+            const published = context.payload.release;
+            if (published && !published.draft && !published.prerelease) {
+              const publishedVersion = published.tag_name.replace(/^v/, "");
+              if (!releases.some(item => item.version === publishedVersion)) {
+                core.setFailed(
+                  `Release ${published.tag_name} must include Text2Speech-Setup-${publishedVersion}.exe before publishing.`
+                );
+                return;
+              }
+              if (!published.assets.some(
+                asset => asset.name === `Text2Speech-Setup-${publishedVersion}-SHA256.txt`
+              )) {
+                core.setFailed(
+                  `Release ${published.tag_name} must include its matching SHA-256 text file.`
+                );
+                return;
+              }
+            }
+            if (releases.length === 0) {
+              core.setFailed("No stable releases with a Text2Speech installer were found.");
+              return;
+            }
+            fs.writeFileSync("page/releases.json", JSON.stringify(releases, null, 2) + "\n");
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: page
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
