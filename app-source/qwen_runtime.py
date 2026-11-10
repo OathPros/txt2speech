@@ -99,7 +99,7 @@ def download_model(
             partial.unlink()
             offset = 0
 
-        headers = {"User-Agent": "KokoroVoiceoverStudio/1.1.0"}
+        headers = {"User-Agent": "KokoroVoiceoverStudio/2.0.0"}
         if offset:
             headers["Range"] = f"bytes={offset}-"
         request = urllib.request.Request(MODEL_URL, headers=headers)

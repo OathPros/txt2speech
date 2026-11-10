@@ -22,16 +22,7 @@ foreach ($backend in @("cpu", "cuda")) {
     }
 }
 
-& $python -m PyInstaller --noconfirm --clean --windowed --onedir `
-    --name $appName `
-    --collect-all kokoro_onnx `
-    --collect-all onnxruntime `
-    --collect-all phonemizer `
-    --collect-all espeakng_loader `
-    --collect-all soundfile `
-    --collect-all ttkbootstrap `
-    --collect-all winrt `
-    (Join-Path $root "studio.py")
+& $python -m PyInstaller --noconfirm --clean (Join-Path $root "text2speech.spec")
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller failed with exit code $LASTEXITCODE."
 }
@@ -78,7 +69,7 @@ finally {
 }
 
 Write-Host "Application: $distApp\$appName.exe"
-$standardInstaller = Join-Path $root "dist\installer\Text2Speech-Setup-1.1.0.exe"
+$standardInstaller = Join-Path $root "dist\installer\Text2Speech-Setup-2.0.0.exe"
 Write-Host "Installer:   $standardInstaller"
 Write-Host "Release gate: publish the installer and matching checksum as a stable OathPros/txt2speech GitHub Release, then verify its workflow updates dxluke.com/text2speech."
 
@@ -93,8 +84,8 @@ if ($offlineReady) {
     if ($LASTEXITCODE -ne 0) {
         throw "Offline Inno Setup build failed with exit code $LASTEXITCODE."
     }
-    $offlineInstaller = Join-Path $root "dist\offline\KokoroVoiceoverStudio-Offline-1.1.0.exe"
-    $offlineZip = Join-Path $root "dist\KokoroVoiceoverStudio-Offline-1.1.0.zip"
+    $offlineInstaller = Join-Path $root "dist\offline\KokoroVoiceoverStudio-Offline-2.0.0.exe"
+    $offlineZip = Join-Path $root "dist\KokoroVoiceoverStudio-Offline-2.0.0.zip"
     @'
 import sys, zipfile
 from pathlib import Path

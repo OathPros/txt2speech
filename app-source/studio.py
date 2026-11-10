@@ -42,9 +42,16 @@ from script_service import (
     TONE_OPTIONS,
     TRANSFORMATION_MODES,
     PRESERVE_WORDING,
+    CREATE_FROM_PROMPT,
     generate_narration,
 )
-from web_sources import WebSource, WebSourceError, fetch_web_sources
+from web_sources import (
+    WebSource,
+    WebSearchResult,
+    WebSourceError,
+    fetch_web_sources,
+    search_web_sources,
+)
 
 
 if getattr(sys, "frozen", False):
@@ -158,9 +165,9 @@ def synthesize_segments(
 class VoiceoverStudio:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("Text2Speech")
-        self.root.geometry("1180x860")
-        self.root.minsize(980, 720)
+        self.root.title("Text2Speech Studio")
+        self.root.geometry("1280x900")
+        self.root.minsize(1040, 760)
         self.engine: Kokoro | None = None
         self.audio: np.ndarray | None = None
         self.sample_rate: int | None = None
@@ -183,6 +190,7 @@ class VoiceoverStudio:
         self.ai_approved: list[NarrationSegment] | None = None
         self.web_sources: tuple[WebSource, ...] = ()
         self.pending_web_sources: tuple[WebSource, ...] = ()
+        self.pending_web_warning = ""
         self.ai_cancel: threading.Event | None = None
         self.ai_started_at: float | None = None
         self.ai_progress_message = ""
@@ -196,13 +204,14 @@ class VoiceoverStudio:
         self.root.after(100, self._process_events)
 
     def _build_ui(self) -> None:
-        style = ttkbootstrap.Style(theme="flatly")
+        style = ttkbootstrap.Style(theme="minty-light")
         style.configure(".", font=("Segoe UI", 10))
-        style.configure("TNotebook.Tab", padding=(18, 10), font=("Segoe UI", 10, "bold"))
-        style.configure("TButton", padding=(12, 8))
-        style.configure("Title.TLabel", font=("Segoe UI", 24, "bold"))
-        style.configure("Subtitle.TLabel", font=("Segoe UI", 10))
+        style.configure("TNotebook.Tab", padding=(22, 12), font=("Segoe UI", 10, "bold"))
+        style.configure("TButton", padding=(14, 9))
+        style.configure("Title.TLabel", font=("Segoe UI", 28, "bold"))
+        style.configure("Subtitle.TLabel", font=("Segoe UI", 11))
         style.configure("Section.TLabel", font=("Segoe UI", 12, "bold"))
+        style.configure("Hint.TLabel", foreground="#536273", font=("Segoe UI", 9))
 
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
@@ -222,10 +231,10 @@ class VoiceoverStudio:
 
         header = ttk.Frame(self.root, padding=(26, 22, 26, 12))
         header.grid(row=0, column=0, sticky="ew")
-        ttk.Label(header, text="Text2Speech", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(header, text="Text2Speech Studio", style="Title.TLabel").pack(anchor="w")
         ttk.Label(
             header,
-            text="Shape your script. Find the right voice. Make it yours.",
+            text="Write naturally. Check facts. Turn your words into voiceover.",
             style="Subtitle.TLabel",
         ).pack(anchor="w", pady=(3, 0))
 
@@ -233,8 +242,8 @@ class VoiceoverStudio:
         self.notebook.grid(row=1, column=0, sticky="nsew", padx=26, pady=(4, 12))
         self.voice_tab = ttk.Frame(self.notebook)
         self.ai_tab = ttk.Frame(self.notebook, padding=12)
+        self.notebook.add(self.ai_tab, text="Write and research")
         self.notebook.add(self.voice_tab, text="Voiceover")
-        self.notebook.add(self.ai_tab, text="AI Script Studio")
 
         editor_frame = ttk.LabelFrame(self.voice_tab, text="Your narration", padding=12)
         editor_frame.grid(row=0, column=0, sticky="nsew")
@@ -316,6 +325,7 @@ class VoiceoverStudio:
             row=3, column=0, sticky="ew"
         )
         self._build_ai_ui()
+        self.notebook.select(self.ai_tab)
 
     def _build_ai_ui(self) -> None:
         self.ai_tab.columnconfigure(0, weight=1)
@@ -325,8 +335,8 @@ class VoiceoverStudio:
         options.grid(row=0, column=0, sticky="ew")
         for column in (1, 3, 5):
             options.columnconfigure(column, weight=1)
-        self.ai_mode = tk.StringVar(value=PRESERVE_WORDING)
-        self.ai_tone = tk.StringVar(value=TONE_OPTIONS[0])
+        self.ai_mode = tk.StringVar(value=CREATE_FROM_PROMPT)
+        self.ai_tone = tk.StringVar(value="Natural and conversational")
         self.ai_pacing = tk.StringVar(value="Natural")
         self.ai_audience = tk.StringVar(value="General audience")
         self.ai_custom_tone = tk.StringVar()
@@ -346,6 +356,12 @@ class VoiceoverStudio:
             options, textvariable=self.ai_pacing, values=PACING_OPTIONS,
             state="readonly", width=15,
         ).grid(row=0, column=5, sticky="ew", padx=(6, 0))
+        self.ai_mode_hint = tk.StringVar()
+        ttk.Label(
+            options, textvariable=self.ai_mode_hint, style="Hint.TLabel"
+        ).grid(row=1, column=0, columnspan=6, sticky="w", pady=(8, 0))
+        self.ai_mode.trace_add("write", self._update_mode_hint)
+        self._update_mode_hint()
 
         options2 = ttk.Frame(self.ai_tab)
         options2.grid(row=1, column=0, sticky="ew", pady=(6, 6))
@@ -368,7 +384,18 @@ class VoiceoverStudio:
         source_links = ttk.Frame(self.ai_tab)
         source_links.grid(row=2, column=0, sticky="ew", pady=(2, 6))
         source_links.columnconfigure(1, weight=1)
-        ttk.Label(source_links, text="Web sources").grid(row=0, column=0, sticky="w")
+        ttk.Label(source_links, text="Research query").grid(row=0, column=0, sticky="w")
+        self.ai_research_query = tk.StringVar()
+        ttk.Entry(source_links, textvariable=self.ai_research_query).grid(
+            row=0, column=1, sticky="ew", padx=(8, 8)
+        )
+        self.ai_search_sources_button = ttk.Button(
+            source_links, text="Search web & review", command=self._search_sources
+        )
+        self.ai_search_sources_button.grid(row=0, column=2, sticky="e")
+        ttk.Label(source_links, text="Or paste HTTPS URLs").grid(
+            row=1, column=0, sticky="nw", pady=(6, 0)
+        )
         self.ai_source_urls = tk.Text(
             source_links,
             height=2,
@@ -378,15 +405,17 @@ class VoiceoverStudio:
             padx=8,
             pady=5,
         )
-        self.ai_source_urls.grid(row=0, column=1, sticky="ew", padx=(8, 8))
+        self.ai_source_urls.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=(6, 0))
         self.ai_fetch_sources_button = ttk.Button(
             source_links, text="Fetch & review", command=self._fetch_sources
         )
-        self.ai_fetch_sources_button.grid(row=0, column=2, sticky="e")
-        self.web_source_status = tk.StringVar(value="Optional · paste public HTTPS URLs")
+        self.ai_fetch_sources_button.grid(row=1, column=2, sticky="e", pady=(6, 0))
+        self.web_source_status = tk.StringVar(
+            value="Optional. Nothing is searched or sent until you request it."
+        )
         ttk.Label(
             source_links, textvariable=self.web_source_status, style="Subtitle.TLabel"
-        ).grid(row=1, column=1, columnspan=2, sticky="w", pady=(3, 0))
+        ).grid(row=2, column=1, columnspan=2, sticky="w", pady=(4, 0))
 
         instructions = ttk.Frame(self.ai_tab)
         instructions.grid(row=3, column=0, sticky="ew", pady=(0, 8))
@@ -405,12 +434,17 @@ class VoiceoverStudio:
 
         content = ttk.Panedwindow(self.ai_tab, orient="horizontal")
         content.grid(row=4, column=0, sticky="nsew")
-        source_frame = ttk.LabelFrame(content, text="Original", padding=10)
-        output_frame = ttk.LabelFrame(content, text="Narration · edit freely", padding=10)
+        source_frame = ttk.LabelFrame(content, text="Your prompt or source", padding=12)
+        output_frame = ttk.LabelFrame(content, text="Generated draft · edit freely", padding=12)
         content.add(source_frame, weight=1)
         content.add(output_frame, weight=1)
-        source_frame.rowconfigure(0, weight=1)
+        source_frame.rowconfigure(1, weight=1)
         source_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            source_frame,
+            text="Describe what you want created, or paste a topic, outline, or rough notes.",
+            style="Hint.TLabel",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 7))
         self.ai_source = tk.Text(
             source_frame, wrap="word", undo=True, font=("Segoe UI", 11),
             background="#ffffff", foreground="#1f2937", insertbackground="#1f2937",
@@ -418,12 +452,12 @@ class VoiceoverStudio:
             highlightbackground="#d7dee8", highlightcolor="#3498db",
             padx=10, pady=10,
         )
-        self.ai_source.grid(row=0, column=0, sticky="nsew")
+        self.ai_source.grid(row=1, column=0, sticky="nsew")
         source_scroll = ttk.Scrollbar(source_frame, orient="vertical", command=self.ai_source.yview)
-        source_scroll.grid(row=0, column=1, sticky="ns")
+        source_scroll.grid(row=1, column=1, sticky="ns")
         self.ai_source.configure(yscrollcommand=source_scroll.set)
         source_tools = ttk.Frame(source_frame)
-        source_tools.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        source_tools.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(8, 0))
         ttk.Button(source_tools, text="Import...", command=self._import_ai_source).pack(side="left")
         ttk.Button(
             source_tools, text="Restore source", command=self._restore_original
@@ -597,6 +631,26 @@ class VoiceoverStudio:
         )
         self.recommendation_button.configure(state="normal")
 
+    def _update_mode_hint(self, *_args: object) -> None:
+        hints = {
+            CREATE_FROM_PROMPT: (
+                "Turn a prompt, topic, outline, or rough notes into polished content "
+                "that fits the intent."
+            ),
+            "Create script from notes": (
+                "Turn notes into narration; creative details are welcome when the "
+                "notes request fiction."
+            ),
+            "Rewrite for narration": (
+                "Improve flow and delivery while preserving the source's meaning."
+            ),
+            "Light polish": "Make small clarity and speaking-rhythm improvements.",
+            PRESERVE_WORDING: (
+                "Keep every word exactly as written; only arrange natural pauses."
+            ),
+        }
+        self.ai_mode_hint.set(hints.get(self.ai_mode.get(), ""))
+
     def _apply_recommendation(self) -> None:
         if self.recommended_voice is None:
             return
@@ -658,6 +712,7 @@ class VoiceoverStudio:
         self.ai_cancel_button.configure(state="normal" if busy else "disabled")
         self.ai_output.configure(state="disabled" if busy else "normal")
         self.ai_fetch_sources_button.configure(state="disabled" if busy else "normal")
+        self.ai_search_sources_button.configure(state="disabled" if busy else "normal")
         for control in (
             self.model_location_button,
             self.model_verify_button,
@@ -679,14 +734,43 @@ class VoiceoverStudio:
             target=self._run_source_fetch, args=(urls,), daemon=True
         ).start()
 
+    def _search_sources(self) -> None:
+        query = self.ai_research_query.get().strip()
+        if not query:
+            messagebox.showinfo(
+                "Web research", "Enter a short factual research query first.", parent=self.root
+            )
+            return
+        self.ai_search_sources_button.configure(state="disabled")
+        self.ai_fetch_sources_button.configure(state="disabled")
+        self.web_source_status.set("Searching the web and preparing source excerpts…")
+        threading.Thread(
+            target=self._run_web_search, args=(query,), daemon=True
+        ).start()
+
+    def _run_web_search(self, query: str) -> None:
+        try:
+            result = search_web_sources(query)
+            warning = (
+                f"{result.skipped_results} search result(s) could not be fetched."
+                if result.skipped_results
+                else ""
+            )
+            self.events.put(("sources_fetched", result))
+        except WebSourceError as error:
+            self.events.put(("sources_failed", str(error)))
+
     def _run_source_fetch(self, urls: str) -> None:
         try:
             self.events.put(("sources_fetched", fetch_web_sources(urls)))
         except WebSourceError as error:
             self.events.put(("sources_failed", str(error)))
 
-    def _review_fetched_sources(self, sources: tuple[WebSource, ...]) -> None:
+    def _review_fetched_sources(
+        self, sources: tuple[WebSource, ...], warning: str = ""
+    ) -> None:
         self.pending_web_sources = sources
+        self.pending_web_warning = warning
         window = tk.Toplevel(self.root)
         window.title("Review web sources")
         window.geometry("720x520")
@@ -697,6 +781,8 @@ class VoiceoverStudio:
             window, wrap="word", font=("Segoe UI", 10), padx=14, pady=12, relief="flat"
         )
         preview.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=12, pady=12)
+        if warning:
+            preview.insert("end", f"Notice: {warning}\n\n")
         for source in sources:
             preview.insert("end", f"{source.title}\n{source.url}\n\n{source.text}\n\n")
         preview.configure(state="disabled")
@@ -715,6 +801,7 @@ class VoiceoverStudio:
         count = len(self.web_sources)
         self.web_source_status.set(
             f"{count} source{'s' if count != 1 else ''} reviewed"
+            + (f" · {self.pending_web_warning}" if self.pending_web_warning else "")
         )
         window.destroy()
 
@@ -1205,9 +1292,19 @@ class VoiceoverStudio:
                     messagebox.showerror("AI Script Studio", str(value), parent=self.root)
                 elif kind == "sources_fetched":
                     self.ai_fetch_sources_button.configure(state="normal")
-                    self._review_fetched_sources(value)
+                    self.ai_search_sources_button.configure(state="normal")
+                    if isinstance(value, WebSearchResult):
+                        warning = (
+                            f"{value.skipped_results} search result(s) could not be fetched."
+                            if value.skipped_results
+                            else ""
+                        )
+                        self._review_fetched_sources(value.sources, warning)
+                    else:
+                        self._review_fetched_sources(value)
                 elif kind == "sources_failed":
                     self.ai_fetch_sources_button.configure(state="normal")
+                    self.ai_search_sources_button.configure(state="normal")
                     self.web_source_status.set("Could not fetch sources")
                     messagebox.showerror("Web sources", str(value), parent=self.root)
                 elif kind == "ai_verified":

@@ -1,16 +1,16 @@
 #define AppName "Text2Speech"
-#define AppVersion "1.1.0"
+#define AppVersion "2.0.0"
 #define AppPublisher "Text2Speech"
 #define AppExeName "KokoroVoiceoverStudio.exe"
 #ifdef OfflineDistribution
 #define InstallerOutputDir "dist\offline"
-#define InstallerOutputName "KokoroVoiceoverStudio-Offline-1.1.0"
+#define InstallerOutputName "KokoroVoiceoverStudio-Offline-2.0.0"
 #define InstallerCompression "lzma2/fast"
 #define InstallerDiskSpanning "yes"
 #define InstallerDiskSliceSize "2000000000"
 #else
 #define InstallerOutputDir "dist\installer"
-#define InstallerOutputName "Text2Speech-Setup-1.1.0"
+#define InstallerOutputName "Text2Speech-Setup-2.0.0"
 #define InstallerCompression "lzma2/ultra64"
 #define InstallerDiskSpanning "no"
 #endif

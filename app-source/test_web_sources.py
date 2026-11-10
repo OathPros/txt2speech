@@ -1,6 +1,9 @@
+import base64
+import html
 import ipaddress
 import unittest
 from email.message import Message
+from urllib.error import URLError
 from unittest.mock import patch
 
 import web_sources
@@ -9,6 +12,7 @@ from web_sources import (
     extract_readable_text,
     fetch_web_sources,
     format_source_context,
+    search_web_sources,
 )
 
 
@@ -40,6 +44,19 @@ class FakeOpener:
     def open(self, request, timeout):
         self.requests.append((request, timeout))
         return self.response
+
+
+class QueueOpener:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.requests = []
+
+    def open(self, request, timeout):
+        self.requests.append((request, timeout))
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 class WebSourceTests(unittest.TestCase):
@@ -93,6 +110,56 @@ class WebSourceTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(WebSourceError, "not an HTML"):
                 fetch_web_sources("https://example.com/document", opener=opener)
+
+    def test_search_fetches_and_returns_reviewable_public_sources(self):
+        targets = [
+            "https://example.net/unavailable",
+            "https://example.com/first",
+            "https://example.org/second",
+        ]
+        result_links = []
+        for target in targets:
+            encoded = base64.urlsafe_b64encode(target.encode()).decode().rstrip("=")
+            result_links.append(
+                '<li class="b_algo"><h2><a href="'
+                + html.escape(f"https://www.bing.com/ck/a?u=a1{encoded}")
+                + '">Result</a></h2></li>'
+            )
+        search_response = FakeResponse(
+            "".join(result_links).encode(),
+            url="https://www.bing.com/search?q=cat+poetry",
+        )
+        page_responses = [URLError("site unavailable")]
+        page_responses.extend(
+            FakeResponse(
+                f"<html><title>Source {index}</title><article><p>Verified excerpt {index - 1}.</p></article></html>".encode(),
+                url=target,
+            )
+            for index, target in enumerate(targets[1:], start=2)
+        )
+        pages = QueueOpener(page_responses)
+        with patch.object(
+            web_sources,
+            "_resolved_addresses",
+            return_value={ipaddress.ip_address("93.184.216.34")},
+        ):
+            result = search_web_sources(
+                "cat poetry",
+                search_opener=FakeOpener(search_response),
+                page_opener=pages,
+            )
+
+        self.assertEqual(len(result.sources), 2)
+        self.assertEqual(result.sources[0].url, targets[1])
+        self.assertEqual(result.sources[0].text, "Verified excerpt 1.")
+        self.assertEqual(result.skipped_results, 1)
+        self.assertEqual(len(pages.requests), 3)
+
+    def test_search_rejects_empty_and_oversized_queries(self):
+        with self.assertRaisesRegex(WebSourceError, "query first"):
+            search_web_sources(" ")
+        with self.assertRaisesRegex(WebSourceError, "300 characters"):
+            search_web_sources("x" * 301)
 
 
 if __name__ == "__main__":
