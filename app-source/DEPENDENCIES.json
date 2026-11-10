@@ -1,0 +1,63 @@
+{
+  "application_version": "1.1.0",
+  "model": {
+    "name": "Qwen3.5-9B",
+    "quantization": "Q4_K_M",
+    "repository": "SoAIHQ/Qwen3.5-9B-GGUF",
+    "revision": "5032137e231885dbd88e43b118c87b804b461a61",
+    "filename": "Qwen3.5-9B-Q4_K_M.gguf",
+    "size_bytes": 5780091008,
+    "sha256": "ef6f244d63abcba4f8d30b7cbd9369e9e798fc33cf21109889373f59af329c93",
+    "upstream_model": "Qwen/Qwen3.5-9B",
+    "upstream_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "license": "Apache-2.0",
+    "vision_components_included": false
+  },
+  "llama_cpp": {
+    "release": "b12230",
+    "commit": "a4d4f2fd4ec85ec6a0a9ece4870416c1b6cc24f5",
+    "cpu_archive_sha256": "a787fb94d48e6d93aa5809133f5f984360a5713b20d2f9ee1ccc4b22cd9cce56",
+    "cuda_12_4_archive_sha256": "29180e373c153ca59e1837872561eeb800f5b60f1e6375653f8b7d3df57ab885",
+    "cuda_runtime_archive_sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+    "license": "MIT"
+  },
+  "inference": {
+    "context_size_tokens": 4096,
+    "listen_address": "127.0.0.1",
+    "vision_projector_included": false
+  },
+  "python_packages": {
+    "ttkbootstrap": {
+      "version": "2.2.7",
+      "license": "MIT AND (Apache-2.0 OR BSD-2-Clause)"
+    },
+    "pillow": {
+      "version": "13.0.0",
+      "license": "MIT-CMU"
+    },
+    "winrt-runtime": {
+      "version": "3.2.1",
+      "license": "MIT"
+    },
+    "winrt-Windows.Foundation": {
+      "version": "3.2.1",
+      "license": "MIT"
+    },
+    "winrt-Windows.Foundation.Collections": {
+      "version": "3.2.1",
+      "license": "MIT"
+    },
+    "winrt-Windows.Media.Transcoding": {
+      "version": "3.2.1",
+      "license": "MIT"
+    },
+    "winrt-Windows.Media.MediaProperties": {
+      "version": "3.2.1",
+      "license": "MIT"
+    },
+    "winrt-Windows.Storage": {
+      "version": "3.2.1",
+      "license": "MIT"
+    }
+  }
+}

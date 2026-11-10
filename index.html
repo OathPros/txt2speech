@@ -56,6 +56,13 @@
     }
     .download:hover { background: #921125; }
     .meta { color: #70666c; font-size: 14px; }
+    .release-history { margin-top: 30px; }
+    .release-history h2 { font-size: 18px; }
+    .release-list { padding-left: 20px; }
+    .release-list li { margin: 10px 0; }
+    .release-list a { color: #b4152d; }
+    .release-status { min-height: 1.5em; color: #70666c; font-size: 14px; }
+    .release-date { color: #70666c; font-size: 13px; }
     .details {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -82,12 +89,18 @@
       <h1>Turn your script into speech.</h1>
       <p class="intro">
         Prepare narration with a local AI writing assistant, choose a Kokoro voice,
-        preview your audio, and export a WAV. Your scripts stay on your computer.
+        preview your audio, and export the finished narration. Your scripts stay
+        on your computer.
       </p>
-      <a class="download" href="https://github.com/OathPros/txt2speech/releases/latest/download/Text2Speech-Setup-1.1.0.exe">
-        Download for Windows
+      <a class="download" id="latest-download" href="https://github.com/OathPros/txt2speech/releases/latest/download/Text2Speech-Setup-1.1.0.exe">
+        Download Text2Speech 1.1.0 for Windows
       </a>
-      <div class="meta">Version 1.1.0 · 64-bit · 705 MB · Per-user install, no administrator required</div>
+      <div class="meta" id="latest-release-meta">Version 1.1.0 · 64-bit · 705 MB · Per-user install, no administrator required</div>
+      <div class="release-history">
+        <h2>Previous versions</h2>
+        <p id="release-status" class="release-status" aria-live="polite">Loading release history…</p>
+        <ul id="previous-releases" class="release-list"></ul>
+      </div>
       <div class="details">
         <div class="detail">
           <strong>Local and private</strong>
@@ -107,5 +120,65 @@
   <footer>
     <a href="https://github.com/OathPros/txt2speech/releases">Release notes and downloads</a>
   </footer>
+  <script>
+    const releaseStatus = document.getElementById("release-status");
+    const releaseList = document.getElementById("previous-releases");
+    const latestDownload = document.getElementById("latest-download");
+    const latestMeta = document.getElementById("latest-release-meta");
+    const formatSize = bytes =>
+      `${Math.round(bytes / (1024 * 1024)).toLocaleString()} MB`;
+    const formatDate = value =>
+      new Date(value).toLocaleDateString(undefined, {
+        year: "numeric", month: "short", day: "numeric"
+      });
+
+    fetch("./releases.json", { cache: "no-store" })
+      .then(response => {
+        if (!response.ok) throw new Error("Release list is unavailable.");
+        return response.json();
+      })
+      .then(releases => {
+        if (!Array.isArray(releases) || releases.length === 0) {
+          throw new Error("No published installers were found.");
+        }
+        const [latest, ...older] = releases;
+        latestDownload.href = latest.downloadUrl;
+        latestDownload.textContent = `Download Text2Speech ${latest.version} for Windows`;
+        latestMeta.textContent =
+          `Version ${latest.version} · 64-bit · ${formatSize(latest.sizeBytes)} · Per-user install, no administrator required`;
+        releaseList.replaceChildren();
+        older.forEach(release => {
+          const item = document.createElement("li");
+          const download = document.createElement("a");
+          download.href = release.downloadUrl;
+          download.textContent = `Text2Speech ${release.version}`;
+          item.append(download);
+          const details = document.createElement("span");
+          details.className = "release-date";
+          details.textContent = ` · ${formatDate(release.publishedAt)} · ${formatSize(release.sizeBytes)}`;
+          item.append(details);
+          if (release.releaseUrl) {
+            const notes = document.createElement("a");
+            notes.href = release.releaseUrl;
+            notes.textContent = " · Release notes";
+            item.append(notes);
+          }
+          if (release.checksumUrl) {
+            const checksum = document.createElement("a");
+            checksum.href = release.checksumUrl;
+            checksum.textContent = " · SHA-256";
+            item.append(checksum);
+          }
+          releaseList.append(item);
+        });
+        releaseStatus.textContent = older.length
+          ? `${older.length} earlier version${older.length === 1 ? "" : "s"} available.`
+          : "This is the first published version.";
+      })
+      .catch(() => {
+        releaseStatus.textContent =
+          "Release history is temporarily unavailable. See all versions on GitHub.";
+      });
+  </script>
 </body>
 </html>
