@@ -53,13 +53,13 @@ folder; keep its `.bin` volumes beside it until setup finishes.
 
 ## Release and upgrade policy
 
-Every public release must update the download page in the separate
-`OathPros/txt2speech` GitHub Pages repository as part of the same release:
-publish the installer and matching checksum as a stable GitHub Release there.
-The repository's Pages workflow updates the version, installer size, download
-link, and older-version list automatically. Verify
-`https://dxluke.com/text2speech/` after the workflow completes; do not mark a
-release complete before the new version and download link are visible.
+Every public release must include the installer and matching checksum as a
+stable GitHub Release in `OathPros/txt2speech`. That repository's independent
+Pages workflow updates the version, installer size, download link, and older-
+version list automatically. The standalone download page is
+`https://oathpros.github.io/txt2speech/`. If a release-triggered Pages run is
+blocked by environment protection, dispatch `pages.yml` from `main`. Verify
+the new version and download link after deployment.
 
 The installer keeps the existing AppId and per-user installation directory, so
 new versions update the existing Text2Speech installation rather than creating
