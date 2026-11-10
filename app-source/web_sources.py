@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import ipaddress
 import socket
 import urllib.error
@@ -14,7 +15,10 @@ MAX_SOURCES = 3
 MAX_PAGE_BYTES = 2 * 1024 * 1024
 MAX_PAGE_CHARS = 8_000
 MAX_REFERENCE_CHARS = 2_500
+MAX_SEARCH_QUERY_CHARS = 300
+MAX_SEARCH_BYTES = 1 * 1024 * 1024
 REQUEST_TIMEOUT_SECONDS = 12
+SEARCH_URL = "https://www.bing.com/search"
 _SKIP_TAGS = {"script", "style", "noscript", "svg", "iframe", "nav", "footer"}
 _BLOCK_TAGS = {
     "article", "br", "div", "h1", "h2", "h3", "h4", "li", "p", "section",
@@ -30,6 +34,12 @@ class WebSource:
     url: str
     title: str
     text: str
+
+
+@dataclass(frozen=True)
+class WebSearchResult:
+    sources: tuple[WebSource, ...]
+    skipped_results: int = 0
 
 
 class _ReadableTextParser(HTMLParser):
@@ -63,6 +73,35 @@ class _ReadableTextParser(HTMLParser):
             self.title_parts.append(data)
         elif self._skip_depth == 0:
             self.text_parts.append(data)
+
+
+class _SearchResultsParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.urls: list[str] = []
+        self._result_depth = 0
+        self._heading_depth = 0
+        self._link_href: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        if tag == "li":
+            classes = (values.get("class") or "").split()
+            if self._result_depth or "b_algo" in classes:
+                self._result_depth += 1
+        elif self._result_depth and tag == "h2":
+            self._heading_depth += 1
+        elif self._heading_depth and tag == "a":
+            self._link_href = values.get("href")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "a" and self._link_href:
+            self.urls.append(self._link_href)
+            self._link_href = None
+        elif tag == "h2" and self._heading_depth:
+            self._heading_depth -= 1
+        elif tag == "li" and self._result_depth:
+            self._result_depth -= 1
 
 
 def _resolved_addresses(host: str) -> set[ipaddress.IPv4Address | ipaddress.IPv6Address]:
@@ -145,7 +184,8 @@ def fetch_web_sources(
             url,
             headers={
                 "Accept": "text/html, text/plain;q=0.9",
-                "User-Agent": "Text2Speech/1.2",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 Chrome/131 Safari/537.36 Text2Speech/2.0",
             },
         )
         try:
@@ -179,6 +219,102 @@ def fetch_web_sources(
             raise WebSourceError(f"Source {url} did not contain readable text.")
         sources.append(WebSource(final_url, title or final_url, text))
     return tuple(sources)
+
+
+def _search_result_url(href: str) -> str | None:
+    parsed = urllib.parse.urlsplit(urllib.parse.unquote(href))
+    if parsed.scheme.lower() != "https" or not parsed.hostname:
+        return None
+    if parsed.hostname.lower() == "www.bing.com" and parsed.path == "/ck/a":
+        encoded = urllib.parse.parse_qs(parsed.query).get("u", [""])[0]
+        if not encoded.startswith("a1"):
+            return None
+        try:
+            padding = "=" * (-len(encoded[2:]) % 4)
+            target = base64.urlsafe_b64decode(encoded[2:] + padding).decode("utf-8")
+        except (ValueError, UnicodeError):
+            return None
+        target_parts = urllib.parse.urlsplit(target)
+        if target_parts.scheme.lower() != "https" or not target_parts.hostname:
+            return None
+        return target
+    return href
+
+
+def search_web_sources(
+    query: str,
+    *,
+    search_opener: Any | None = None,
+    page_opener: Any | None = None,
+) -> WebSearchResult:
+    value = query.strip()
+    if not value:
+        raise WebSourceError("Enter a short factual research query first.")
+    if len(value) > MAX_SEARCH_QUERY_CHARS:
+        raise WebSourceError(
+            f"Research queries must be no more than {MAX_SEARCH_QUERY_CHARS} characters."
+        )
+    search_url = SEARCH_URL + "?" + urllib.parse.urlencode({"q": value})
+    validate_source_url(search_url)
+    opener = search_opener or urllib.request.build_opener(_PublicRedirectHandler())
+    request = urllib.request.Request(
+        search_url,
+        headers={
+            "Accept": "text/html",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 Chrome/131 Safari/537.36 Text2Speech/2.0",
+        },
+    )
+    try:
+        with opener.open(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+            validate_source_url(response.geturl())
+            if response.headers.get_content_type().lower() != "text/html":
+                raise WebSourceError("The web search provider returned an unsupported page.")
+            payload = response.read(MAX_SEARCH_BYTES + 1)
+    except WebSourceError:
+        raise
+    except (OSError, urllib.error.URLError, TimeoutError, ValueError) as error:
+        raise WebSourceError(f"Web search failed: {error}") from error
+    if len(payload) > MAX_SEARCH_BYTES:
+        raise WebSourceError("The web search response was larger than 1 MB.")
+
+    parser = _SearchResultsParser()
+    parser.feed(payload.decode("utf-8", errors="replace"))
+    parser.close()
+    urls: list[str] = []
+    skipped = 0
+    for href in parser.urls:
+        target = _search_result_url(href)
+        if not target:
+            skipped += 1
+            continue
+        try:
+            target = validate_source_url(target)
+        except WebSourceError:
+            skipped += 1
+            continue
+        if target not in urls:
+            urls.append(target)
+        else:
+            skipped += 1
+        if len(urls) == MAX_SOURCES:
+            break
+    if not urls:
+        raise WebSourceError(
+            "No public HTTPS results were found. Try a more specific query or paste URLs."
+        )
+    sources: list[WebSource] = []
+    for url in urls:
+        try:
+            sources.extend(fetch_web_sources(url, opener=page_opener))
+        except WebSourceError:
+            skipped += 1
+    if not sources:
+        raise WebSourceError(
+            "Search results were found, but none could be fetched as readable pages. "
+            "Try a different query or paste source URLs."
+        )
+    return WebSearchResult(tuple(sources), skipped)
 
 
 def format_source_context(

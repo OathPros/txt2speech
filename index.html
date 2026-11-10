@@ -3,127 +3,162 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#faf8f7">
-  <meta name="description" content="Text2Speech is a private, local Windows voiceover studio.">
-  <title>Text2Speech - Local Voiceover Studio</title>
+  <meta name="theme-color" content="#f6f4f1">
+  <meta name="description" content="Write with local AI, research facts, and create natural voiceovers with Text2Speech Studio.">
+  <title>Text2Speech Studio - Write, research, speak</title>
   <style>
     :root {
       color-scheme: light;
       font-family: "Segoe UI", Arial, sans-serif;
-      color: #252025;
-      background: #faf8f7;
+      color: #20232b;
+      background: #f6f4f1;
+      --ink: #20232b;
+      --muted: #656a73;
+      --line: #e4e0dc;
+      --red: #b4152d;
+      --paper: #fff;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; }
+    body { margin: 0; line-height: 1.6; }
+    a { color: var(--red); }
+    a:focus-visible { outline: 3px solid var(--red); outline-offset: 4px; }
     header {
-      max-width: 1000px;
-      height: 94px;
+      height: 82px;
+      max-width: 1160px;
       margin: auto;
-      padding: 0 28px;
-      border-bottom: 1px solid #e6dfe2;
+      padding: 0 30px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-bottom: 1px solid var(--line);
     }
-    header strong { font-size: 21px; letter-spacing: -.7px; }
-    header a { color: #b4152d; font-size: 14px; }
-    main { max-width: 1000px; margin: 60px auto; padding: 0 28px; }
-    .card {
-      padding: 42px;
-      border: 1px solid #e6dfe2;
-      border-top: 4px solid #b4152d;
-      border-radius: 12px;
-      background: #fff;
+    header strong { font-size: 19px; letter-spacing: -.5px; }
+    header a { font-size: 14px; font-weight: 650; text-decoration: none; }
+    main { max-width: 1160px; margin: auto; padding: 62px 30px 56px; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(310px, .8fr);
+      align-items: center;
+      gap: 48px;
     }
     .eyebrow {
-      color: #b4152d;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: .08em;
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .13em;
       text-transform: uppercase;
     }
-    h1 { margin: 12px 0; font-size: clamp(36px, 6vw, 56px); letter-spacing: -1.7px; }
-    .intro { max-width: 650px; color: #70666c; font-size: 18px; line-height: 1.6; }
+    h1 { max-width: 650px; margin: 14px 0 18px; font-size: clamp(42px, 6vw, 68px); line-height: 1.04; letter-spacing: -2.7px; }
+    h2 { margin: 0 0 9px; font-size: 19px; letter-spacing: -.3px; }
+    .intro { max-width: 620px; margin: 0; color: var(--muted); font-size: 18px; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 27px; }
     .download {
       display: inline-block;
-      margin: 22px 0 8px;
-      padding: 14px 22px;
-      border-radius: 9px;
-      background: #b4152d;
+      padding: 14px 21px;
+      border-radius: 8px;
+      background: var(--red);
       color: white;
-      font-weight: 700;
+      font-weight: 750;
       text-decoration: none;
+      box-shadow: 0 7px 18px #b4152d26;
     }
     .download:hover { background: #921125; }
-    .meta { color: #70666c; font-size: 14px; }
-    .release-history { margin-top: 30px; }
-    .release-history h2 { font-size: 18px; }
-    .release-list { padding-left: 20px; }
-    .release-list li { margin: 10px 0; }
-    .release-list a { color: #b4152d; }
-    .release-status { min-height: 1.5em; color: #70666c; font-size: 14px; }
-    .release-date { color: #70666c; font-size: 13px; }
-    .details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 18px;
-      margin-top: 38px;
+    .checksum { font-size: 14px; font-weight: 650; }
+    .meta { margin-top: 11px; color: var(--muted); font-size: 13px; }
+    .preview {
+      padding: 27px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--paper);
+      box-shadow: 0 18px 48px #26232a0d;
     }
-    .detail { padding-top: 18px; border-top: 1px solid #e6dfe2; }
-    .detail strong { display: block; margin-bottom: 6px; }
-    .detail p { margin: 0; color: #70666c; line-height: 1.5; }
-    footer { padding: 24px; color: #70666c; text-align: center; font-size: 13px; }
-    footer a { color: #b4152d; }
-    @media (max-width: 600px) {
-      header { padding: 0 20px; }
-      main { margin: 32px auto; }
-      .card { padding: 28px 22px; }
+    .preview-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .badge { padding: 4px 9px; border-radius: 999px; background: #f7e9eb; color: var(--red); font-size: 11px; font-weight: 750; }
+    .step { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+    .step-number { color: var(--red); font-size: 13px; font-weight: 800; }
+    .step strong { display: block; font-size: 14px; }
+    .step span:last-child { color: var(--muted); font-size: 13px; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 55px; }
+    .feature { min-height: 150px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+    .feature p { margin: 0; color: var(--muted); font-size: 14px; }
+    .release-history { margin-top: 34px; padding: 24px; border-top: 1px solid var(--line); }
+    .release-history h2 { font-size: 16px; }
+    .release-list { padding-left: 20px; }
+    .release-list li { margin: 8px 0; font-size: 14px; }
+    .release-date, .release-status { color: var(--muted); font-size: 13px; }
+    .release-status { min-height: 1.5em; }
+    footer { padding: 24px 20px 34px; color: var(--muted); text-align: center; font-size: 13px; }
+    footer a { font-weight: 650; }
+    @media (max-width: 760px) {
+      header { height: 72px; padding: 0 20px; }
+      main { padding: 38px 20px 42px; }
+      .hero { grid-template-columns: 1fr; gap: 32px; }
+      .features { grid-template-columns: 1fr; margin-top: 36px; }
+      .feature { min-height: 0; }
     }
   </style>
 </head>
 <body>
-  <header><strong>Text2Speech</strong><a href="/">DXLUKE - All apps</a></header>
+  <header><strong>Text2Speech Studio</strong><a href="/">DXLUKE apps</a></header>
   <main>
-    <section class="card">
-      <div class="eyebrow">Windows voiceover studio</div>
-      <h1>Turn your script into speech.</h1>
-      <p class="intro">
-        Prepare narration with a local AI writing assistant, choose a Kokoro voice,
-        preview your audio, and export the finished narration. Your scripts stay
-        on your computer.
-      </p>
-      <a class="download" id="latest-download" href="https://github.com/OathPros/txt2speech/releases/latest/download/Text2Speech-Setup-1.1.0.exe">
-        Download Text2Speech 1.1.0 for Windows
-      </a>
-      <div class="meta" id="latest-release-meta">Version 1.1.0 · 64-bit · 705 MB · Per-user install, no administrator required</div>
-      <div class="release-history">
-        <h2>Previous versions</h2>
-        <p id="release-status" class="release-status" aria-live="polite">Loading release history…</p>
-        <ul id="previous-releases" class="release-list"></ul>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Version 2 · Windows voiceover studio</div>
+        <h1>Write anything. Give it a voice.</h1>
+        <p class="intro">
+          Get a real draft from your prompt, research facts when you need them,
+          then shape the words into a voiceover. Your writing stays on your PC.
+        </p>
+        <div class="actions">
+          <a class="download" id="latest-download" href="https://github.com/OathPros/txt2speech/releases/latest">
+            Download for Windows
+          </a>
+          <a class="checksum" id="latest-checksum" href="https://github.com/OathPros/txt2speech/releases">
+            SHA-256
+          </a>
+        </div>
+        <div class="meta" id="latest-release-meta">Latest version · 64-bit · Per-user install</div>
       </div>
-      <div class="details">
-        <div class="detail">
-          <strong>Local and private</strong>
-          <p>Qwen script assistance and Kokoro speech generation run locally.</p>
+      <aside class="preview" aria-label="How the app works">
+        <div class="preview-top">
+          <strong>Your writing workspace</strong>
+          <span class="badge">LOCAL AI</span>
         </div>
-        <div class="detail">
-          <strong>First AI use</strong>
-          <p>The installer includes Kokoro. Qwen downloads automatically the first time you use AI features.</p>
-        </div>
-        <div class="detail">
-          <strong>Compatible with Windows</strong>
-          <p>For 64-bit Windows 10 or later. Internet is only needed for the initial Qwen download.</p>
-        </div>
-      </div>
+        <div class="step"><span class="step-number">01</span><span><strong>Describe the result</strong><span>Poems, stories, scripts, or source notes.</span></span></div>
+        <div class="step"><span class="step-number">02</span><span><strong>Check the facts</strong><span>Search and review sources before using them.</span></span></div>
+        <div class="step"><span class="step-number">03</span><span><strong>Make it yours</strong><span>Edit the draft, choose a voice, and export audio.</span></span></div>
+      </aside>
+    </section>
+
+    <section class="features" aria-label="Text2Speech Studio features">
+      <article class="feature">
+        <h2>From idea to finished script</h2>
+        <p>Turn prompts, topics, outlines, and rough notes into polished creative, informative, or professional narration.</p>
+      </article>
+      <article class="feature">
+        <h2>Research you control</h2>
+        <p>Search the web or bring your own links. Review every source before it informs a draft.</p>
+      </article>
+      <article class="feature">
+        <h2>Private writing</h2>
+        <p>Qwen writing and Kokoro voice generation run on your computer. Search queries are opt-in.</p>
+      </article>
+    </section>
+
+    <section class="release-history" aria-labelledby="release-heading">
+      <h2 id="release-heading">Previous versions</h2>
+      <p id="release-status" class="release-status" aria-live="polite">Loading release history…</p>
+      <ul id="previous-releases" class="release-list"></ul>
     </section>
   </main>
   <footer>
-    <a href="https://github.com/OathPros/txt2speech/releases">Release notes and downloads</a>
+    For 64-bit Windows 10 or later · <a href="https://github.com/OathPros/txt2speech/releases">Release notes and downloads</a>
   </footer>
   <script>
     const releaseStatus = document.getElementById("release-status");
     const releaseList = document.getElementById("previous-releases");
     const latestDownload = document.getElementById("latest-download");
+    const latestChecksum = document.getElementById("latest-checksum");
     const latestMeta = document.getElementById("latest-release-meta");
     const formatSize = bytes =>
       `${Math.round(bytes / (1024 * 1024)).toLocaleString()} MB`;
@@ -144,8 +179,9 @@
         const [latest, ...older] = releases;
         latestDownload.href = latest.downloadUrl;
         latestDownload.textContent = `Download Text2Speech ${latest.version} for Windows`;
+        latestChecksum.href = latest.checksumUrl || latest.releaseUrl;
         latestMeta.textContent =
-          `Version ${latest.version} · 64-bit · ${formatSize(latest.sizeBytes)} · Per-user install, no administrator required`;
+          `Version ${latest.version} · 64-bit · ${formatSize(latest.sizeBytes)} · Per-user install`;
         releaseList.replaceChildren();
         older.forEach(release => {
           const item = document.createElement("li");

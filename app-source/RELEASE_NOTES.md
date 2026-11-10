@@ -1,5 +1,22 @@
 # Release notes
 
+## 2.0.0
+
+- Made the writing workspace the opening screen and refreshed the app layout,
+  theme, and prompt guidance.
+- Added a prompt-first writing mode that infers intent from prompts, topics,
+  outlines, and rough notes, then creates finished creative, informative,
+  persuasive, instructional, or professional narration.
+- Fiction and invented details are no longer treated as factual errors or
+  reasons to refuse when the request is creative.
+- Updated create-from-notes mode to support fiction when the notes request it,
+  while retaining factual restraint for real-world claims.
+- Added opt-in Bing web search for short research queries. Results are validated
+  as public HTTPS sources, fetched as readable excerpts, shown for review, and
+  used only after approval.
+- Kept writing inference local. Search queries go to Bing only when a user
+  explicitly starts a search; script contents are not sent to search providers.
+
 ## 1.1.0
 
 - Added the AI Script Studio for locally generated narration drafts with

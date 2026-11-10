@@ -1,8 +1,9 @@
 # Text2Speech
 
-Text2Speech is a per-user Windows desktop app for writing scripts, shaping
-them for speech, and exporting narration as WAV, MP3, or M4A. Kokoro speech
-generation works without Qwen; AI script preparation is optional and runs locally.
+Text2Speech Studio 2.0 is a per-user Windows desktop app for writing scripts,
+checking facts against web sources, shaping narration for speech, and exporting
+audio as WAV, MP3, or M4A. Kokoro speech generation works without Qwen; AI
+script preparation runs locally.
 
 ## Run from source
 
@@ -29,7 +30,7 @@ C:\KCS-Voiceover\.venv\Scripts\python.exe -m pip install pyinstaller ttkbootstra
 ```
 
 The standard installer is written to
-`dist\installer\Text2Speech-Setup-1.1.0.exe`. It installs per-user,
+`dist\installer\Text2Speech-Setup-2.0.0.exe`. It installs per-user,
 does not require administrator rights, preserves the existing application ID,
 and does not replace the 1.0.0 installer. The app includes Kokoro assets and
 the pinned CPU/CUDA llama.cpp runtimes.
@@ -37,26 +38,28 @@ the pinned CPU/CUDA llama.cpp runtimes.
 The Qwen GGUF is about 5.78 GB. If it is not already present, the AI Script
 Studio downloads it automatically on the first AI request, displays progress,
 resumes interrupted downloads, and verifies its pinned SHA-256 before use.
-Internet is needed for this initial model download only. Once installed,
-inference and Kokoro speech generation use localhost and work offline. The
-model location can be changed in AI Script Studio settings.
+Internet is needed for this initial model download. Once installed, inference
+and Kokoro speech generation use localhost and work offline. The model location
+can be changed in the app settings. Web searches are a separate opt-in action
+and send only the research query to Bing.
 
 When the complete, verified Qwen GGUF is available at
 `release-assets\models\Qwen3.5-9B-Q4_K_M.gguf`, `package.ps1` also builds an
 offline installer and ZIP at
-`dist\KokoroVoiceoverStudio-Offline-1.1.0.zip`. That package contains the model
+`dist\KokoroVoiceoverStudio-Offline-2.0.0.zip`. That package contains the model
 and does not need internet for installation or use. Extract all ZIP contents to
-one folder and launch `KokoroVoiceoverStudio-Offline-1.1.0.exe` from that
+one folder and launch `KokoroVoiceoverStudio-Offline-2.0.0.exe` from that
 folder; keep its `.bin` volumes beside it until setup finishes.
 
 ## Release and upgrade policy
 
-Publish each installer and matching `Text2Speech-Setup-<version>-SHA256.txt`
-checksum as assets of a stable GitHub Release in `OathPros/txt2speech`. That
-repository's release workflow updates and deploys
-`https://dxluke.com/text2speech/` with the latest release and older published
-versions. Verify the live page after the workflow completes; do not mark a
-release complete before its new download link and version history are visible.
+Every public release must update the download page in the separate
+`OathPros/txt2speech` GitHub Pages repository as part of the same release:
+publish the installer and matching checksum as a stable GitHub Release there.
+The repository's Pages workflow updates the version, installer size, download
+link, and older-version list automatically. Verify
+`https://dxluke.com/text2speech/` after the workflow completes; do not mark a
+release complete before the new version and download link are visible.
 
 The installer keeps the existing AppId and per-user installation directory, so
 new versions update the existing Text2Speech installation rather than creating
@@ -74,9 +77,12 @@ included with Windows; no separate encoder download is required. Pause directive
 `0.3s`, `1.0s`, `...`, `....`, and `.....` are removed from spoken text and
 assembled as PCM silence.
 
-The **AI Script Studio** puts your source and a full, editable narration side
-by side. Choose a transformation, tone, audience, and pacing; insert or edit
-pause markers directly in the text; listen to a selection while editing; then
+The **Write and research** workspace opens first and puts your prompt and a full,
+editable narration side by side. Its default mode infers intent from a prompt,
+topic, outline, or rough notes and creates polished spoken content—creative,
+informative, persuasive, instructional, or professional. Choose a tone, audience,
+and pacing; insert or edit pause markers directly in the text; listen to a
+selection while editing; then
 accept the script and send it straight to Kokoro. Tone and pacing suggest a
 voice and speed, which you can apply or adjust. Save the finished narration as
 a `.txt` file at any time. Preserve exact wording keeps every spoken word
@@ -84,14 +90,17 @@ unchanged and arranges pauses immediately without loading Qwen. The other
 transformation modes use Qwen locally. Exact-word validation runs before a
 script can be accepted.
 
-For research-assisted scripts, paste up to three public HTTPS URLs. Text2Speech
-fetches readable page excerpts, shows them for review, and uses only the
-sources you approve. Script text is never sent to websites or cloud services.
+For research-assisted scripts, enter a short query or paste up to three public
+HTTPS URLs. Text2Speech searches the web or fetches readable page excerpts,
+shows them for review, and uses only the sources you approve. Search queries go
+to Bing only when you explicitly start a search. Script text is never sent to
+search providers or cloud model services.
 
 Qwen runs through the bundled llama.cpp server bound only to `127.0.0.1`.
 Available model status, storage location, RAM, inference mode, verification,
-and unload controls are in AI Script Studio. No script content is sent to a
-cloud service; web requests are made only when you choose to fetch source URLs.
+and unload controls are in the writing workspace. No script content is sent to
+a cloud service; web requests are made only when you choose to search or fetch
+source URLs.
 
 The installer is unsigned; Windows SmartScreen may show an unrecognized-app
 warning. See [release notes](RELEASE_NOTES.md) and
